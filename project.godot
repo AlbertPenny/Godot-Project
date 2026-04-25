@@ -11,8 +11,14 @@ config_version=5
 [application]
 
 config/name="AI test for Claude Code"
+run/main_scene="res://scenes/inventory_demo.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+ItemData="*res://scripts/item_data.gd"
+Inventory="*res://scripts/inventory.gd"
 
 [physics]
 
