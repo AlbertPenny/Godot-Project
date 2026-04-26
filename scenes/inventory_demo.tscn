@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://texture_3" path="res://images/3.png" id="2"]
 
 [node name="InventoryDemo" type="Control"]
 layout_mode = 3
@@ -10,3 +11,93 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.08, 0.12, 1)
+
+[node name="MainHBox" type="HBoxContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 30
+
+[node name="LeftSpacer" type="Control" parent="MainHBox"]
+size_flags_horizontal = 3
+
+[node name="InventoryPanel" type="PanelContainer" parent="MainHBox"]
+custom_minimum_size = Vector2(320, 0)
+
+[node name="InvVBox" type="VBoxContainer" parent="MainHBox/InventoryPanel"]
+theme_override_constants/separation = 8
+
+[node name="InvTitle" type="Label" parent="MainHBox/InventoryPanel/InvVBox"]
+text = "背 包"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+
+[node name="InvGrid" type="GridContainer" parent="MainHBox/InventoryPanel/InvVBox"]
+columns = 5
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+
+[node name="EquipmentPanel" type="PanelContainer" parent="MainHBox"]
+custom_minimum_size = Vector2(200, 0)
+
+[node name="EquipVBox" type="VBoxContainer" parent="MainHBox/EquipmentPanel"]
+theme_override_constants/separation = 8
+
+[node name="EquipTitle" type="Label" parent="MainHBox/EquipmentPanel/EquipVBox"]
+text = "装 备"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9, 0.75, 0.6, 1)
+
+[node name="EquipSlots" type="VBoxContainer" parent="MainHBox/EquipmentPanel/EquipVBox"]
+theme_override_constants/separation = 4
+
+[node name="RightSpacer" type="Control" parent="MainHBox"]
+size_flags_horizontal = 3
+
+[node name="BottomBar" type="HBoxContainer" parent="."]
+anchor_left = 0.3
+anchor_top = 0.85
+anchor_right = 0.7
+anchor_bottom = 0.95
+theme_override_constants/separation = 10
+
+[node name="PickupButton" type="Button" parent="BottomBar"]
+size_flags_horizontal = 3
+text = "拾取随机物品"
+
+[node name="ClearButton" type="Button" parent="BottomBar"]
+size_flags_horizontal = 3
+text = "清空背包"
+
+[node name="PopupMenu" type="PopupMenu" parent="."]
+
+[node name="Tooltip" type="PanelContainer" parent="."]
+visible = false
+z_index = 100
+
+[node name="TooltipVBox" type="VBoxContainer" parent="Tooltip"]
+theme_override_constants/separation = 4
+
+[node name="TooltipTitle" type="Label" parent="Tooltip/TooltipVBox"]
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(1, 0.95, 0.7, 1)
+
+[node name="TooltipType" type="Label" parent="Tooltip/TooltipVBox"]
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.7, 0.7, 0.8, 1)
+
+[node name="TooltipDesc" type="Label" parent="Tooltip/TooltipVBox"]
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)

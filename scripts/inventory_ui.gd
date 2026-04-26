@@ -2,162 +2,74 @@ extends Control
 
 const SLOT_SCENE = preload("res://scenes/slot.tscn")
 
-var inv_slots: Array[Panel] = []
-var equip_slots: Dictionary = {}  # equip_type -> Panel
-var popup_menu: PopupMenu
-var tooltip_panel: PanelContainer
-var tooltip_title: Label
-var tooltip_desc: Label
-var tooltip_type: Label
+@onready var inv_grid: GridContainer = $MainHBox/InventoryPanel/InvVBox/InvGrid
+@onready var equip_slots_vbox: VBoxContainer = $MainHBox/EquipmentPanel/EquipVBox/EquipSlots
+@onready var popup_menu: PopupMenu = $PopupMenu
+@onready var tooltip_panel: PanelContainer = $Tooltip
+@onready var tooltip_title: Label = $Tooltip/TooltipVBox/TooltipTitle
+@onready var tooltip_desc: Label = $Tooltip/TooltipVBox/TooltipDesc
+@onready var tooltip_type: Label = $Tooltip/TooltipVBox/TooltipType
+@onready var pickup_btn: Button = $BottomBar/PickupButton
+@onready var clear_btn: Button = $BottomBar/ClearButton
 
-var _popup_slot: Panel = null  # 当前右键操作的格子
+var inv_slots: Array[Panel] = []
+var equip_slots: Dictionary = {}
+var _popup_slot: Panel = null
 
 func _ready():
-	# 背景
-	var bg = ColorRect.new()
-	bg.name = "Background"
-	bg.anchors_preset = Control.PRESET_FULL_RECT
-	bg.color = Color(0.08, 0.08, 0.12)
-	add_child(bg)
+	_setup_panel_styles()
+	_create_inventory_slots()
+	_create_equipment_slots()
 
-	# 主布局 HBox
-	var main_hbox = HBoxContainer.new()
-	main_hbox.name = "MainHBox"
-	main_hbox.anchors_preset = Control.PRESET_FULL_RECT
-	main_hbox.add_theme_constant_override("separation", 30)
-	add_child(main_hbox)
-
-	# 左侧留白
-	var left_spacer = Control.new()
-	left_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_hbox.add_child(left_spacer)
-
-	# 背包面板
-	var inv_panel = _create_inventory_panel()
-	main_hbox.add_child(inv_panel)
-
-	# 装备栏面板
-	var equip_panel = _create_equipment_panel()
-	main_hbox.add_child(equip_panel)
-
-	# 右侧留白
-	var right_spacer = Control.new()
-	right_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_hbox.add_child(right_spacer)
-
-	# 底部按钮栏
-	var bottom_bar = HBoxContainer.new()
-	bottom_bar.name = "BottomBar"
-	bottom_bar.anchor_top = 0.85
-	bottom_bar.anchor_bottom = 0.95
-	bottom_bar.anchor_left = 0.3
-	bottom_bar.anchor_right = 0.7
-	bottom_bar.add_theme_constant_override("separation", 10)
-	add_child(bottom_bar)
-
-	var pickup_btn = Button.new()
-	pickup_btn.name = "PickupButton"
-	pickup_btn.text = "拾取随机物品"
-	pickup_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pickup_btn.pressed.connect(_on_pickup)
-	bottom_bar.add_child(pickup_btn)
-
-	var clear_btn = Button.new()
-	clear_btn.name = "ClearButton"
-	clear_btn.text = "清空背包"
-	clear_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clear_btn.pressed.connect(_on_clear)
-	bottom_bar.add_child(clear_btn)
-
-	# PopupMenu
-	popup_menu = PopupMenu.new()
-	popup_menu.name = "PopupMenu"
-	add_child(popup_menu)
 	popup_menu.id_pressed.connect(_on_popup_id)
 
-	# Tooltip
-	_create_tooltip()
-
-	# 连接信号
 	Inventory.inventory_changed.connect(_refresh_all)
 	Inventory.equipment_changed.connect(_refresh_all)
 	_refresh_all()
 
-func _create_inventory_panel() -> PanelContainer:
-	var panel = PanelContainer.new()
-	panel.name = "InventoryPanel"
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.18, 0.95)
-	style.border_color = Color(0.35, 0.35, 0.5)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
-	panel.add_theme_stylebox_override("panel", style)
+func _setup_panel_styles():
+	var texture = load("res://images/3.png")
 
-	var vbox = VBoxContainer.new()
-	vbox.name = "InvVBox"
-	vbox.add_theme_constant_override("separation", 8)
-	panel.add_child(vbox)
+	var inv_style = StyleBoxTexture.new()
+	inv_style.texture = texture
+	inv_style.draw_center = true
+	inv_style.content_margin_left = 16
+	inv_style.content_margin_right = 16
+	inv_style.content_margin_top = 12
+	inv_style.content_margin_bottom = 12
+	$MainHBox/InventoryPanel.add_theme_stylebox_override("panel", inv_style)
 
-	var title = Label.new()
-	title.text = "背 包"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7))
-	vbox.add_child(title)
+	var equip_style = StyleBoxTexture.new()
+	equip_style.texture = texture
+	equip_style.draw_center = true
+	equip_style.content_margin_left = 16
+	equip_style.content_margin_right = 16
+	equip_style.content_margin_top = 12
+	equip_style.content_margin_bottom = 12
+	$MainHBox/EquipmentPanel.add_theme_stylebox_override("panel", equip_style)
 
-	var grid = GridContainer.new()
-	grid.name = "InvGrid"
-	grid.columns = 5
-	grid.add_theme_constant_override("h_separation", 4)
-	grid.add_theme_constant_override("v_separation", 4)
-	vbox.add_child(grid)
+	var tooltip_style = StyleBoxTexture.new()
+	tooltip_style.texture = texture
+	tooltip_style.draw_center = true
+	tooltip_style.content_margin_left = 10
+	tooltip_style.content_margin_right = 10
+	tooltip_style.content_margin_top = 8
+	tooltip_style.content_margin_bottom = 8
+	tooltip_panel.add_theme_stylebox_override("panel", tooltip_style)
 
+func _create_inventory_slots():
 	for i in Inventory.SLOT_COUNT:
 		var slot: Panel = SLOT_SCENE.instantiate()
 		slot.slot_index = i
 		slot.slot_type = ""
 		slot.slot_clicked.connect(_on_slot_clicked)
 		slot.slot_right_clicked.connect(_on_slot_right_clicked)
-		grid.add_child(slot)
+		inv_grid.add_child(slot)
 		inv_slots.append(slot)
 
-	return panel
-
-func _create_equipment_panel() -> PanelContainer:
-	var panel = PanelContainer.new()
-	panel.name = "EquipmentPanel"
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.18, 0.95)
-	style.border_color = Color(0.5, 0.4, 0.3)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 12
-	style.content_margin_bottom = 12
-	panel.add_theme_stylebox_override("panel", style)
-
-	var vbox = VBoxContainer.new()
-	vbox.name = "EquipVBox"
-	vbox.add_theme_constant_override("separation", 8)
-	panel.add_child(vbox)
-
-	var title = Label.new()
-	title.text = "装 备"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", Color(0.9, 0.75, 0.6))
-	vbox.add_child(title)
-
-	var slots_vbox = VBoxContainer.new()
-	slots_vbox.name = "EquipSlots"
-	slots_vbox.add_theme_constant_override("separation", 4)
-	vbox.add_child(slots_vbox)
-
+func _create_equipment_slots():
 	var slot_configs = [
 		{"type": "helmet", "label": "头盔"},
 		{"type": "armor", "label": "铠甲"},
@@ -167,7 +79,7 @@ func _create_equipment_panel() -> PanelContainer:
 	for cfg in slot_configs:
 		var hbox = HBoxContainer.new()
 		hbox.add_theme_constant_override("separation", 8)
-		slots_vbox.add_child(hbox)
+		equip_slots_vbox.add_child(hbox)
 
 		var lbl = Label.new()
 		lbl.text = cfg.label
@@ -186,44 +98,6 @@ func _create_equipment_panel() -> PanelContainer:
 		hbox.add_child(slot)
 		equip_slots[cfg.type] = slot
 
-	return panel
-
-func _create_tooltip():
-	tooltip_panel = PanelContainer.new()
-	tooltip_panel.name = "Tooltip"
-	tooltip_panel.visible = false
-	tooltip_panel.z_index = 100
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-	style.border_color = Color(0.5, 0.5, 0.6)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	tooltip_panel.add_theme_stylebox_override("panel", style)
-	add_child(tooltip_panel)
-
-	var tooltip_vbox = VBoxContainer.new()
-	tooltip_vbox.add_theme_constant_override("separation", 4)
-	tooltip_panel.add_child(tooltip_vbox)
-
-	tooltip_title = Label.new()
-	tooltip_title.add_theme_font_size_override("font_size", 14)
-	tooltip_title.add_theme_color_override("font_color", Color(1, 0.95, 0.7))
-	tooltip_vbox.add_child(tooltip_title)
-
-	tooltip_type = Label.new()
-	tooltip_type.add_theme_font_size_override("font_size", 11)
-	tooltip_type.add_theme_color_override("font_color", Color(0.7, 0.7, 0.8))
-	tooltip_vbox.add_child(tooltip_type)
-
-	tooltip_desc = Label.new()
-	tooltip_desc.add_theme_font_size_override("font_size", 11)
-	tooltip_desc.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
-	tooltip_vbox.add_child(tooltip_desc)
-
 func _refresh_all():
 	for i in inv_slots.size():
 		var s = Inventory.slots[i]
@@ -233,7 +107,6 @@ func _refresh_all():
 		equip_slots[equip_type].update_display(e.item_id, e.quantity)
 
 func _on_slot_clicked(_slot: Panel):
-	# 左键点击，隐藏tooltip
 	tooltip_panel.visible = false
 
 func _on_slot_right_clicked(slot: Panel):
@@ -271,17 +144,17 @@ func _on_popup_id(id: int):
 	if _popup_slot == null:
 		return
 	match id:
-		0:  # 使用消耗品
+		0:
 			if _popup_slot.slot_type == "":
 				Inventory.remove_item_from_slot(_popup_slot.slot_index, 1)
-		1:  # 卸下装备
+		1:
 			Inventory.unequip_item(_popup_slot.slot_type)
-		2:  # 装备
+		2:
 			if _popup_slot.slot_type == "":
 				var item_def = ItemData.get_item(Inventory.slots[_popup_slot.slot_index].item_id)
 				if item_def:
 					Inventory.equip_item(_popup_slot.slot_index, item_def.equip_slot)
-		3:  # 丢弃
+		3:
 			if _popup_slot.slot_type != "":
 				Inventory.equipment[_popup_slot.slot_type].clear()
 				Inventory.equipment_changed.emit()
@@ -318,7 +191,6 @@ func _update_tooltip():
 	var item_id = ""
 	var item_def = null
 
-	# 检查鼠标悬停在哪个格子上
 	for slot in inv_slots:
 		var slot_rect = Rect2(slot.global_position, slot.size)
 		if slot_rect.has_point(mouse_pos):
